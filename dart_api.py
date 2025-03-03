@@ -5,7 +5,10 @@ import asyncio
 
 API_KEY = os.getenv("OPEN_DART_API_KEY")
 
-# Added constants for DART_API_LIST and DART_API_DOCUMENT
+DART_API_CORPCODE = "https://opendart.fss.or.kr/api/corpCode.xml"
+# 개발 참조: https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS001&apiId=2019018
+# 설명: 고유번호 찾기 API
+
 DART_API_LIST = "https://opendart.fss.or.kr/api/list.json"
 # 개발 참조: https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS001&apiId=2019001
 # 설명: 공시 검색 API - 공시 유형별, 회사별, 날짜별 등 다양한 조건으로 검색.
@@ -151,12 +154,7 @@ async def fetch_company_info(company_code: str) -> pd.DataFrame:
 
 # DS003: 단일회사 주요 재무지표 - now requires idx_cl_code parameter
 async def fetch_financial_indicator(company_code: str, bsns_year: str, report_code: str, idx_cl_code: str) -> pd.DataFrame:
-    params = {
-        "corp_code": company_code,
-        "bsns_year": bsns_year,
-        "reprt_code": report_code,
-        "idx_cl_code": idx_cl_code
-    }
+    params = {"corp_code": company_code, "bsns_year": bsns_year, "reprt_code": report_code, "idx_cl_code": idx_cl_code}
     return _call_api("FNLLT_SINGL_IND", params)
 
 # DS005: 각 주요사항보고서 API now require bgn_de and end_de instead of page_count
