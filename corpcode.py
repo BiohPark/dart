@@ -4,6 +4,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 import io
 import pandas as pd
+from dart_api import DART_API_CORPCODE  # Import centralized endpoint
 
 API_KEY = os.getenv("OPEN_DART_API_KEY")
 if not API_KEY:
@@ -11,15 +12,12 @@ if not API_KEY:
     
 def fetch_corp_codes():
     # API 요청 URL
-    url = "https://opendart.fss.or.kr/api/corpCode.xml"
-
-    # 요청 파라미터
     params = {
         "crtfc_key": API_KEY
     }
 
     # API 요청
-    response = requests.get(url, params=params)
+    response = requests.get(DART_API_CORPCODE, params=params)
 
     # 정상 응답 확인
     if response.status_code == 200:

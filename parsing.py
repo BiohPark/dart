@@ -2,36 +2,35 @@ import os
 import openai
 import xml.etree.ElementTree as ET
 
-def read_xml_files(base_folder_path: str, report_type: str):
-    # XML 파일 읽기
+def load_xml_files(base_dir: str, report_category: str):
+    """Load XML file contents from the specified report directory."""
     xml_contents = []
-    report_folder_path = os.path.join(base_folder_path, report_type)
-    if os.path.exists(report_folder_path):
-        for file_name in os.listdir(report_folder_path):
+    report_folder = os.path.join(base_dir, report_category)
+    if os.path.exists(report_folder):
+        for file_name in os.listdir(report_folder):
             if file_name.endswith(".xml"):
-                xml_path = os.path.join(report_folder_path, file_name)
+                xml_path = os.path.join(report_folder, file_name)
                 with open(xml_path, "r", encoding="utf-8", errors="replace") as f:
                     xml_contents.append(f.read())
     return xml_contents
 
-def parse_and_summarize(company_name: str, corp_code: str, use_openai: bool = False):
-    summaries = []
-    base_folder_path = f"dart_reports/{corp_code}"
+def summarize_reports(company_name: str, company_code: str, use_openai: bool = False):
+    """Generate summaries for reports using either the OpenAI API or direct XML parsing."""
+    report_summaries = []
+    base_dir = f"dart_reports/{company_code}"
 
-    # OpenAI를 사용하는 경우 (chatGPT API), ChatGPT를 사용하여 요약
     if use_openai:
         API_KEY = os.getenv("OPENAI_API_KEY")
         if not API_KEY:
             print("환경 변수 OPENAI_API_KEY를 설정해야 합니다.")
-            return summaries
-
-        for report_type in ["사업보고서", "분기보고서", "반기보고서", "감사보고서"]:
-            xml_contents = read_xml_files(base_folder_path, report_type)
-            for content in xml_contents: # xml_contents: xml 파일 내용
+            return report_summaries
+        for report_category in ["사업보고서", "분기보고서", "반기보고서", "감사보고서"]:
+            xml_contents = load_xml_files(base_dir, report_category)
+            for content in xml_contents:
                 try:
                     client = openai.OpenAI(api_key=API_KEY)
                     response = client.chat.completions.create(
-                        model="gpt-3.5-turbo", # gpt-4o-mini
+                        model="gpt-3.5-turbo",
                         messages=[
                             {
                                 "role": "system",
@@ -43,14 +42,12 @@ def parse_and_summarize(company_name: str, corp_code: str, use_openai: bool = Fa
                             {"role": "user", "content": content}
                         ]
                     )
-                    summaries.append(response['choices'][0]['message']['content'].strip())
+                    report_summaries.append(response['choices'][0]['message']['content'].strip())
                 except Exception as e:
-                    summaries.append(f"Error: {e}")
-
-    # OpenAI를 사용하지 않는 경우 (직접 파싱), XML 파일을 직접 읽어서 요약
+                    report_summaries.append(f"Error: {e}")
     else:
-        for report_type in ["사업보고서", "분기보고서", "반기보고서", "감사보고서"]:
-            xml_contents = read_xml_files(base_folder_path, report_type)
+        for report_category in ["사업보고서", "분기보고서", "반기보고서", "감사보고서"]:
+            xml_contents = load_xml_files(base_dir, report_category)
             for content in xml_contents:
                 try:
                     root = ET.fromstring(content)
@@ -58,23 +55,19 @@ def parse_and_summarize(company_name: str, corp_code: str, use_openai: bool = Fa
                     website = root.findtext(".//홈페이지")
                     revenue = root.findtext(".//매출액")
                     products = root.findtext(".//제품")
-
                     summary = f"고객사: {customer}, 홈페이지: {website}, 매출액: {revenue}, 제품: {products}"
-                    summaries.append(summary)
+                    report_summaries.append(summary)
                 except Exception as e:
-                    summaries.append(f"Error: {e}")
+                    report_summaries.append(f"Error: {e}")
+    return report_summaries
 
-    return summaries
-
-def parse_reports(company_name: str, corp_code: str, use_openai: bool = False):
-    # 보고서 파싱 및 요약
-    summaries = parse_and_summarize(company_name, corp_code, use_openai)
-
-    # 요약 출력
+def run_report_parsing(company_name: str, company_code: str, use_openai: bool = False):
+    """Parse and print report summaries."""
+    summaries = summarize_reports(company_name, company_code, use_openai)
     for summary in summaries:
         print(summary)
 
 if __name__ == "__main__":
     company_name = input("🔍 기업명을 입력하세요: ")
-    corp_code = input("🔍 고유번호를 입력하세요: ")
-    parse_reports(company_name, corp_code)
+    company_code = input("🔍 고유번호를 입력하세요: ")
+    run_report_parsing(company_name, company_code)
